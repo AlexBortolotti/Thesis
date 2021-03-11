@@ -1,2 +1,1 @@
-# thesis-lmfit
- 
+# Thesis

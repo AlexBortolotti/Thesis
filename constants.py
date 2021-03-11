@@ -1,14 +1,26 @@
 from dataManagement import data
 from dataManagement import contact_data
 import numpy as np
+from scipy.sparse import csr_matrix
 
 def matrix_converter(k_fine, coarse_bds, fine_bds, pyramid):
     #Function that transforms Prem's contact matrix (fine_bds) into a contact matrix with Istat sierlogical study's age classes (coarse_bds)
-    aggregator = np.zeros(fine_bds.size - 1) #This matrix stores where each class in finer structure is in coarser structure
+    aggregator = np.zeros(fine_bds.size - 1.) #This matrix stores where each class in finer structure is in coarser structure
+    non_aggregator = np.arange(aggregator.size)
     for i in range(fine_bds.size-1):
-        aggregator[i]=(np.where(coarse_bds >= fine_bds[i+1])[0])[0]-1;
+        aggregator[i]=(np.where(coarse_bds >= fine_bds[i+1])[0])[0]-1.;
     
     pyramid = pyramid/np.sum(pyramid) #Normalize to give proportions
+    agg_pop_pyramid = (csr_matrix((pyramid, (aggregator, non_aggregator)))).sum(1) #Sparse matrix defined here just splits pyramid into rows corresponding to coarse boundaries, then summing each row gives aggregated pyramid
+    rel_weights = pyramid * agg_pop_pyramid[aggregator]
+    
+    # Now define contact matrix with age classes from sierological survey
+    pop_weight_matrix = csr_matrix((rel_weights, (aggregator, non_aggregator)))
+    pop_no_weight = csr_matrix((np.ones(aggregator.size), (aggregator, non_aggregator)))
+    k_coarse = pop_weight_matrix @ k_fine.transpose() @ pop_no_weight
+    
+    return k_coarse
+    
     
 
 
